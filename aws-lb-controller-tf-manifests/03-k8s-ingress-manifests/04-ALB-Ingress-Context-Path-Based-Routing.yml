@@ -1,0 +1,59 @@
+# Annotations Reference: https://kubernetes-sigs.github.io/aws-load-balancer-controller/latest/guide/ingress/annotations/
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-alb
+  annotations:
+    # Load Balancer Name
+    alb.ingress.kubernetes.io/load-balancer-name: alb-ingress
+
+    # Ingress Core Settings
+    #kubernetes.io/ingress.class: "alb" (OLD INGRESS CLASS NOTATION - STILL WORKS BUT RECOMMENDED TO USE IngressClass Resource)
+    alb.ingress.kubernetes.io/scheme: internet-facing
+
+    # Health Check Settings
+    alb.ingress.kubernetes.io/healthcheck-protocol: HTTP 
+    alb.ingress.kubernetes.io/healthcheck-port: traffic-port
+    #Important Note:  Need to add health check path annotations in service level if we are planning to use multiple targets in a load balancer    
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: '15'
+    alb.ingress.kubernetes.io/healthcheck-timeout-seconds: '5'
+    alb.ingress.kubernetes.io/success-codes: '200'
+    alb.ingress.kubernetes.io/healthy-threshold-count: '2'
+    alb.ingress.kubernetes.io/unhealthy-threshold-count: '2'   
+spec:
+  ingressClassName: my-aws-ingress-class   # Ingress Class 
+  defaultBackend:
+    service:
+      name: app-03-nginx-nodeport-service
+      port:
+        number: 80                            
+  rules:
+    - http:
+        paths:           
+          - path: /app1
+            pathType: Prefix
+            backend:
+              service:
+                name: app-01-nginx-nodeport-service
+                port: 
+                  number: 80
+          - path: /app2
+            pathType: Prefix
+            backend:
+              service:
+                name: app-02-nginx-nodeport-service
+                port: 
+                  number: 80
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: app-03-nginx-nodeport-service
+                port: 
+                  number: 80
+
+# Please note that in path-based routing, the order of rules is crucial. If using "/*" (root context), it is advisable to place it at the end of all the rules.
+
+# Two important points to keep in mind:
+# If "spec.ingressClassName: my-aws-ingress-class" is not specified, the default ingress class of the Kubernetes cluster will be used.
+# The default ingress class is the one with the annotation ingressclass.kubernetes.io/is-default-class: "true".
